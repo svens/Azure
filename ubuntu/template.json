@@ -1,0 +1,261 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "apiProfile": "2018-03-01-hybrid",
+
+  "parameters":
+  {
+    "Login":
+    {
+      "type": "string",
+      "metadata":
+      {
+        "description": "User name on virtual machine"
+      }
+
+    },
+    "LoginKey":
+    {
+      "type": "string",
+      "metadata":
+      {
+        "description": "SSH public key content for user (authorized_keys)"
+      }
+    }
+  },
+
+  "variables":
+  {
+    "servicePrefix": "[uniqueString(resourceGroup().Id)]",
+
+    "networkSecurityGroupName": "[concat(variables('servicePrefix'), '-nsg')]",
+    "networkSecurityGroup":
+    {
+      "Name": "[variables('networkSecurityGroupName')]",
+      "Id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName'))]"
+    },
+
+    "virtualNetworkName": "[concat(variables('servicePrefix'), '-vnet')]",
+    "virtualNetwork":
+    {
+      "Name": "[variables('virtualNetworkName')]",
+      "Id": "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]",
+      "AddressPrefix": "10.0.0.0/16"
+    },
+
+    "subnetName": "Subnet",
+    "subnet":
+    {
+      "Name": "[concat(variables('virtualNetwork').Name, '/', variables('subnetName'))]",
+      "Id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('virtualNetworkName'), variables('subnetName'))]",
+      "AddressPrefix": "10.0.0.0/24"
+    },
+
+    "publicIPAddressName": "[concat(variables('servicePrefix'), '-pip')]",
+    "publicIPAddress":
+    {
+      "Name": "[variables('publicIPAddressName')]",
+      "Id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIPAddressName'))]",
+      "DomainNameLabel": "[variables('servicePrefix')]"
+    },
+
+    "networkInterfaceName": "[concat(variables('servicePrefix'), '-nic')]",
+    "networkInterface":
+    {
+      "Name": "[variables('networkInterfaceName')]",
+      "Id": "[resourceId('Microsoft.Network/networkInterfaces', variables('networkInterfaceName'))]"
+    },
+
+    "virtualMachineName": "[concat(variables('servicePrefix'), '-vm')]",
+    "virtualMachine":
+    {
+      "Name": "[variables('virtualMachineName')]",
+      "Id": "[resourceId('Microsoft.Compute/virtualMachines', variables('virtualMachineName'))]",
+      "Hardware":
+      {
+        "Size": "Standard_DS2_v2"
+      },
+      "OS":
+      {
+        "Publisher": "Canonical",
+        "Offer": "UbuntuServer",
+        "Version": "16.04-LTS"
+      }
+    }
+  },
+
+  "resources":
+  [
+    {
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "name": "[variables('networkSecurityGroup').Name]",
+      "location": "[resourceGroup().Location]",
+      "properties":
+      {
+        "securityRules":
+        [
+          {
+            "name": "AllowSSH",
+            "properties":
+            {
+              "protocol": "TCP",
+              "sourcePortRange": "*",
+              "destinationPortRange": "22",
+              "sourceAddressPrefix": "*",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 100,
+              "direction": "Inbound"
+            }
+          }
+        ]
+      }
+    },
+
+    {
+      "type": "Microsoft.Network/virtualNetworks",
+      "name": "[variables('virtualNetwork').Name]",
+      "location": "[resourceGroup().Location]",
+      "properties":
+      {
+        "addressSpace":
+        {
+          "addressPrefixes":
+          [
+            "[variables('virtualNetwork').AddressPrefix]"
+          ]
+        }
+      }
+    },
+
+    {
+      "type": "Microsoft.Network/virtualNetworks/subnets",
+      "name": "[variables('subnet').Name]",
+      "apiVersion": "2018-02-01",
+      "dependsOn":
+      [
+        "[variables('virtualNetwork').Id]",
+        "[variables('networkSecurityGroup').Id]"
+      ],
+      "properties":
+      {
+        "addressPrefix": "[variables('subnet').AddressPrefix]",
+        "networkSecurityGroup":
+        {
+          "id": "[variables('networkSecurityGroup').Id]"
+        }
+      }
+    },
+
+    {
+      "type": "Microsoft.Network/publicIPAddresses",
+      "name": "[variables('publicIPAddress').Name]",
+      "location": "[resourceGroup().Location]",
+      "properties":
+      {
+        "publicIPAllocationMethod": "Dynamic",
+        "dnsSettings":
+        {
+          "domainNameLabel": "[variables('publicIPAddress').DomainNameLabel]"
+        }
+      }
+    },
+
+    {
+      "type": "Microsoft.Network/networkInterfaces",
+      "name": "[variables('networkInterface').Name]",
+      "location": "[resourceGroup().Location]",
+      "dependsOn":
+      [
+        "[variables('publicIPAddress').Id]",
+        "[variables('subnet').Id]"
+      ],
+      "properties":
+      {
+        "ipConfigurations":
+        [
+          {
+            "name": "ipconfig1",
+            "properties":
+            {
+              "privateIPAllocationMethod": "Dynamic",
+              "publicIPAddress":
+              {
+                "id": "[variables('publicIPAddress').Id]"
+              },
+              "subnet":
+              {
+                "id": "[variables('subnet').Id]"
+              }
+            }
+          }
+        ]
+      }
+    },
+
+    {
+      "type": "Microsoft.Compute/virtualMachines",
+      "name": "[variables('virtualMachine').Name]",
+      "location": "[resourceGroup().Location]",
+      "dependsOn":
+      [
+        "[variables('networkInterface').Id]"
+      ],
+      "properties":
+      {
+        "hardwareProfile":
+        {
+          "vmSize": "[variables('virtualMachine').Hardware.Size]"
+        },
+        "osProfile":
+        {
+          "computerName": "[variables('servicePrefix')]",
+          "adminUsername": "[parameters('Login')]",
+          "linuxConfiguration":
+          {
+            "disablePasswordAuthentication": true,
+            "ssh":
+            {
+              "publicKeys":
+              [
+                {
+                  "path": "[concat('/home/', parameters('Login'), '/.ssh/authorized_keys')]",
+                  "keyData": "[parameters('LoginKey')]"
+                }
+              ]
+            }
+          }
+        },
+        "storageProfile":
+        {
+          "imageReference":
+          {
+            "publisher": "[variables('virtualMachine').OS.Publisher]",
+            "offer": "[variables('virtualMachine').OS.Offer]",
+            "sku": "[variables('virtualMachine').OS.Version]",
+            "version": "latest"
+          },
+          "osDisk": { "createOption": "FromImage" }
+        },
+        "networkProfile":
+        {
+          "networkInterfaces":
+          [
+            {
+              "id": "[variables('networkInterface').Id]"
+            }
+          ]
+        }
+      }
+    }
+  ],
+
+  "outputs":
+  {
+    "ssh":
+    {
+      "type": "string",
+      "value": "[concat('ssh ', parameters('Login'), '@', reference(variables('publicIPAddress').Name).dnsSettings.fqdn)]"
+    }
+  }
+}
