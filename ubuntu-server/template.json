@@ -79,7 +79,8 @@
       {
         "Publisher": "Canonical",
         "Offer": "UbuntuServer",
-        "Version": "16.04-LTS"
+        "Version": "16.04-LTS",
+        "DiskName": "[concat(variables('servicePrefix'), '-os_disk')]"
       }
     }
   },
@@ -235,7 +236,11 @@
             "sku": "[variables('virtualMachine').OS.Version]",
             "version": "latest"
           },
-          "osDisk": { "createOption": "FromImage" }
+          "osDisk":
+          {
+            "name": "[variables('virtualMachine').OS.DiskName]",
+            "createOption": "FromImage"
+          }
         },
         "networkProfile":
         {
