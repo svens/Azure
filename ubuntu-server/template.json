@@ -81,6 +81,13 @@
         "Version": "16.04-LTS",
         "DiskName": "[concat(variables('servicePrefix'), '-os_disk')]"
       }
+    },
+
+    "setupScript":
+    {
+      "Name": "[concat(variables('virtualMachine').Name, '/setupScript')]",
+      "Uri": "https://raw.githubusercontent.com/svens/Azure/master/ubuntu-server/setup.sh",
+      "Execute": "sh setup.sh"
     }
   },
 
@@ -238,6 +245,7 @@
           "osDisk":
           {
             "name": "[variables('virtualMachine').OS.DiskName]",
+            "caching": "ReadWrite",
             "createOption": "FromImage"
           }
         },
@@ -249,6 +257,28 @@
               "id": "[variables('networkInterface').Id]"
             }
           ]
+        }
+      }
+    },
+
+    {
+      "type": "Microsoft.Compute/virtualMachines/extensions",
+      "name": "[variables('setupScript').Name]",
+      "location": "[resourceGroup().Location]",
+      "dependsOn":
+      [
+        "[variables('virtualMachine').Id]"
+      ],
+      "properties":
+      {
+        "publisher": "Microsoft.Azure.Extensions",
+        "type": "CustomScript",
+        "typeHandlerVersion": "2.0",
+        "autoUpgradeMinorVersion": true,
+        "settings":
+        {
+          "fileUris": [ "[variables('setupScript').Uri]" ],
+          "commandToExecute": "[variables('setupScript').Execute]"
         }
       }
     }
