@@ -1,0 +1,24 @@
+{
+  "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+
+  "parameters":
+  {
+    "Name": { "value": "ubuntu-server" },
+    "Location": { "value": "northeurope" },
+
+    "TemplateUri":
+    {
+      "value": "https://raw.githubusercontent.com/svens/Azure/master/ubuntu-server/template.json"
+    },
+
+    "TemplateParameters":
+    {
+      "value":
+      {
+        "Login": { "value": "YOUR-LOGIN-NAME" },
+        "LoginKey": { "value": "RUN: ssh-keygen -t rsa" }
+      }
+    }
+  }
+}

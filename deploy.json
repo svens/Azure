@@ -1,0 +1,63 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "apiProfile": "2018-03-01-hybrid",
+
+  "parameters":
+  {
+    "Name":
+    {
+      "type": "string",
+      "metadata": { "description": "Resource group name" }
+    },
+    "Location":
+    {
+      "type": "string",
+      "metadata": { "description": "Location of resource group" }
+    },
+    "TemplateUri":
+    {
+      "type": "string",
+      "metadata": { "description": "Link to ARM template to deploy into resource group" }
+    },
+    "TemplateParameters":
+    {
+      "type": "object",
+      "metadata": { "description": "Parameters for ARM template" }
+    }
+  },
+
+  "variables":
+  {
+    "ResourceGroup":
+    {
+      "Name": "[parameters('Name')]",
+      "Location": "[parameters('Location')]",
+      "Id": "[resourceId('Microsoft.Resources/resourceGroups', parameters('Name'))]"
+    }
+  },
+
+  "resources":
+  [
+    {
+      "type": "Microsoft.Resources/resourceGroups",
+      "name": "[variables('ResourceGroup').Name]",
+      "apiVersion": "2018-05-01",
+      "location": "[variables('ResourceGroup').Location]"
+    },
+
+    {
+      "type": "Microsoft.Resources/deployments",
+      "name": "Deployment",
+      "apiVersion": "2018-05-01",
+      "resourceGroup": "[variables('ResourceGroup').Name]",
+      "dependsOn": [ "[variables('resourceGroup').Id]" ],
+      "properties":
+      {
+        "mode": "Incremental",
+        "templateLink": { "uri": "[parameters('TemplateUri')]" },
+        "parameters": "[parameters('TemplateParameters')]"
+      }
+    }
+  ]
+}

@@ -13,18 +13,17 @@ Location ?= northeurope
 # Targets
 #
 
-.resource_group_action:
-	az group show --name $(Name) >/dev/null 2>&1 || \
-	  az group create --name $(Name) --location $(Location)
-	az group deployment $(action) \
-	  --resource-group $(Name) \
-	  --template-file $(Template)/template.json
+.deploy:
+	az deployment $(action) \
+	  --location $(Location) \
+	  --template-file deploy.json \
+	  --parameters @$(Template)/deploy.parameters.json
 
 test:
-	$(MAKE) .resource_group_action action=validate
+	$(MAKE) .deploy action=validate
 
 deploy:
-	$(MAKE) .resource_group_action action=create
+	$(MAKE) .deploy action=create
 
 clean:
 	az group delete --name $(Name)
