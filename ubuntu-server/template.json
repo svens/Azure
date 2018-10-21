@@ -87,7 +87,7 @@
     {
       "Name": "[concat(variables('virtualMachine').Name, '/setupScript')]",
       "Uri": "https://raw.githubusercontent.com/svens/Azure/master/ubuntu-server/setup.sh",
-      "Execute": "sh setup.sh"
+      "Execute": "[concat('sh setup.sh ', variables('Login'))]"
     }
   },
 
