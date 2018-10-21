@@ -17,7 +17,8 @@ Location ?= northeurope
 	az deployment $(action) \
 	  --location $(Location) \
 	  --template-file deploy.json \
-	  --parameters @$(Template)/deploy.parameters.json
+	  --parameters @$(Template)/deploy.parameters.json \
+	    Location=$(Location)
 
 test:
 	$(MAKE) .deploy action=validate

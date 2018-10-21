@@ -55,7 +55,7 @@
     {
       "Name": "[variables('publicIPAddressName')]",
       "Id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIPAddressName'))]",
-      "DomainNameLabel": "[variables('servicePrefix')]"
+      "DomainNameLabel": "[concat('z', variables('servicePrefix'))]"
     },
 
     "networkInterfaceName": "[concat(variables('servicePrefix'), '-nic')]",
